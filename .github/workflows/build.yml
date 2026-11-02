@@ -11,6 +11,10 @@ env:
   PYTHONUTF8: '1'
   PYTHONIOENCODING: 'utf-8'
 
+# 发布 Release 需要写权限（新仓库默认 GITHUB_TOKEN 为只读）
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
