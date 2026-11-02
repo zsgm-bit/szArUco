@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# PyInstaller 产物
+build/
+dist/
+*.spec
+
+# 测试 / 临时文件
+test_output/
+_gt.png
+_ours.png
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# WorkBuddy 内部工作数据
+.workbuddy/

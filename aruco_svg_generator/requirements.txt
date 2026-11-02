@@ -1,0 +1,5 @@
+PyQt5>=5.15
+opencv-contrib-python>=4.7
+reportlab>=3.6
+numpy
+qrcode>=7.0

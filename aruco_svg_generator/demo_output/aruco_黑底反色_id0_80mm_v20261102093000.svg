@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96mm" height="106mm" viewBox="0 0 96 106">
+<rect x="0.15" y="0.15" width="95.7" height="105.7" fill="none" stroke="#888888" stroke-width="0.2"/>
+<rect x="0" y="0" width="96" height="106" fill="#000000"/>
+<rect x="8" y="8" width="80" height="80" fill="#FFFFFF"/>
+<rect x="21.3333" y="21.3333" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="48" y="21.3333" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="61.3333" y="21.3333" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="34.6667" y="34.6667" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="61.3333" y="34.6667" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="48" y="48" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="61.3333" y="48" width="13.3333" height="13.3333" fill="#000000"/>
+<rect x="48" y="61.3333" width="13.3333" height="13.3333" fill="#000000"/>
+<text x="48" y="97.6" font-family="Microsoft YaHei, SimHei, Arial, sans-serif" font-size="5" font-weight="bold" fill="#FFFFFF" text-anchor="middle">100001</text>
+<text x="48" y="102.2" font-family="Microsoft YaHei, SimHei, Arial, sans-serif" font-size="3.8" fill="#D9D9D9" text-anchor="middle">A区充电桩</text>
+</svg>
