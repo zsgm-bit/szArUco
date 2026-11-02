@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 zsgm-bit
+# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
 """CSV 导入解析。
 
 标准格式（推荐带表头）：

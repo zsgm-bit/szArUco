@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 zsgm-bit
+# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
 """ArUco 矢量 SVG 生成器。
 
 坐标系：1 SVG 用户单位 = 1 mm。

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 zsgm-bit
+# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
 """szArUco — ArUco/QR 矢量码生成器，程序入口。
 
 Windows 11 直接运行: python main.py

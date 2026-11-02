@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""一键打包 Windows exe（PyInstaller 单文件）。
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 zsgm-bit
+# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
+r"""一键打包 Windows exe（PyInstaller 单文件）。
 
 用法：
     ..\.venv\Scripts\python.exe build_exe.py          # 单文件 exe（默认）

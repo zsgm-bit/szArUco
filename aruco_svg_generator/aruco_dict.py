@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 zsgm-bit
+# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
 """ArUco 字典封装。
 
 位图（比特矩阵）数据来自 OpenCV 预定义字典，仅用于提供字典比特数据，
