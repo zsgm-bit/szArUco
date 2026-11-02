@@ -1,5 +1,7 @@
 # szArUco
 
+[![Build Windows EXE](https://github.com/zsgm-bit/szArUco/actions/workflows/build.yml/badge.svg)](https://github.com/zsgm-bit/szArUco/actions/workflows/build.yml)
+
 ArUco / QR 矢量码生成器 —— 面向 OHT·AMR 地标地贴的 Windows 桌面工具。
 
 生成**纯矢量** SVG（1 单位 = 1mm，无限缩放不失真）与矢量 PDF 拼版文件，
