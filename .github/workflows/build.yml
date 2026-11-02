@@ -40,9 +40,11 @@ jobs:
 
       - name: Self test the built EXE
         run: |
+          # exe 为 windowed 子系统，PowerShell 的 & 不会等待进程，须用 Start-Process -Wait 取退出码
           $exe = Get-ChildItem aruco_svg_generator/dist/*.exe | Select-Object -First 1
-          & $exe.FullName --selftest
-          if ($LASTEXITCODE -ne 0) { throw "Frozen EXE self-test failed" }
+          $p = Start-Process -FilePath $exe.FullName -ArgumentList '--selftest' -Wait -PassThru
+          Get-Content "$env:TEMP\aruco_selftest.log" -Encoding UTF8
+          if ($p.ExitCode -ne 0) { throw "Frozen EXE self-test failed (exit $($p.ExitCode))" }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
