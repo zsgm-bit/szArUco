@@ -12,8 +12,18 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
+def _stdout_utf8():
+    """把标准输出切到 UTF-8：CI（cp1252 控制台）打印中文时不会抛 UnicodeEncodeError。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:      # noqa: BLE001 —— 旧环境无 reconfigure 时忽略
+            pass
+
+
 def _selftest():
     """无界面自检：验证字典、QR 矩阵、SVG 生成、PDF 导出。"""
+    _stdout_utf8()
     lines, ok = [], True
     tmpdir = tempfile.mkdtemp(prefix="aruco_selftest_")
     try:
@@ -59,7 +69,10 @@ def _selftest():
         log = os.path.join(tempfile.gettempdir(), "aruco_selftest.log")
         with open(log, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
-        print("\n".join(lines))
+        try:
+            print("\n".join(lines))
+        except Exception:      # noqa: BLE001 —— 控制台编码不可控，绝不因此让自检失败
+            print("\n".join(lines).encode("ascii", "replace").decode("ascii"))
     return 0 if ok else 1
 
 

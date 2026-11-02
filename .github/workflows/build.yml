@@ -7,15 +7,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: 'utf-8'
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
 
@@ -27,8 +31,18 @@ jobs:
       - name: Self test
         run: python aruco_svg_generator/main.py --selftest
 
+      - name: Show self-test log (on failure)
+        if: failure()
+        run: Get-Content "$env:TEMP\aruco_selftest.log" -Encoding UTF8
+
       - name: Build EXE
         run: python aruco_svg_generator/build_exe.py
+
+      - name: Self test the built EXE
+        run: |
+          $exe = Get-ChildItem aruco_svg_generator/dist/*.exe | Select-Object -First 1
+          & $exe.FullName --selftest
+          if ($LASTEXITCODE -ne 0) { throw "Frozen EXE self-test failed" }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
