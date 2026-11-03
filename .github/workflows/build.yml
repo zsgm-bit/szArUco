@@ -10,14 +10,15 @@ on:
 env:
   PYTHONUTF8: '1'
   PYTHONIOENCODING: 'utf-8'
-
-# 发布 Release 需要写权限（新仓库默认 GITHUB_TOKEN 为只读）
-permissions:
-  contents: write
+  # 自检日志统一落在这里，失败时便于打印
+  SZARUCO_SELFTEST_LOG: ${{ github.workspace }}\selftest.log
 
 jobs:
   build:
     runs-on: windows-latest
+    # 最小权限：构建阶段只需要读代码
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -29,15 +30,20 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r aruco_svg_generator/requirements.txt
-          pip install pyinstaller
 
       - name: Self test
         run: python aruco_svg_generator/main.py --selftest
 
+      - name: Security regression tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python aruco_svg_generator/test_security_regression.py
+
       - name: Show self-test log (on failure)
         if: failure()
-        run: Get-Content "$env:TEMP\aruco_selftest.log" -Encoding UTF8
+        run: Get-Content "$env:SZARUCO_SELFTEST_LOG" -Encoding UTF8
 
       - name: Build EXE
         run: python aruco_svg_generator/build_exe.py
@@ -47,19 +53,42 @@ jobs:
           # exe 为 windowed 子系统，PowerShell 的 & 不会等待进程，须用 Start-Process -Wait 取退出码
           $exe = Get-ChildItem aruco_svg_generator/dist/*.exe | Select-Object -First 1
           $p = Start-Process -FilePath $exe.FullName -ArgumentList '--selftest' -Wait -PassThru
-          Get-Content "$env:TEMP\aruco_selftest.log" -Encoding UTF8
+          Get-Content "$env:SZARUCO_SELFTEST_LOG" -Encoding UTF8
           if ($p.ExitCode -ne 0) { throw "Frozen EXE self-test failed (exit $($p.ExitCode))" }
+
+      - name: Generate SHA256 checksum
+        run: |
+          $exe = Get-ChildItem aruco_svg_generator/dist/*.exe | Select-Object -First 1
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -FilePath aruco_svg_generator/dist/SHA256SUMS.txt -Encoding utf8
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: szArUco-windows-exe
-          path: aruco_svg_generator/dist/*.exe
+          path: |
+            aruco_svg_generator/dist/*.exe
+            aruco_svg_generator/dist/SHA256SUMS.txt
           if-no-files-found: error
 
-      - name: Release (on v* tag)
-        if: startsWith(github.ref, 'refs/tags/')
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: windows-latest
+    # 只有需要发布的任务才拿到写权限
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: szArUco-windows-exe
+          path: dist
+
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: aruco_svg_generator/dist/*.exe
+          files: |
+            dist/*.exe
+            dist/SHA256SUMS.txt
           generate_release_notes: true

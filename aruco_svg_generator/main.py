@@ -6,13 +6,23 @@
 
 Windows 11 直接运行: python main.py
 打包后的 exe 支持 `--selftest`：无界面跑一遍字典/QR/SVG/PDF，结果写入
-%TEMP%/aruco_selftest.log，退出码 0 表示全部通过（用于验证打包完整性）。
+唯一临时目录下的 selftest.log，退出码 0 表示全部通过（用于验证打包完整性）。
+可用环境变量 SZARUCO_SELFTEST_LOG 指定日志路径（CI 用）。
 """
 import os
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+def _selftest_log_path() -> str:
+    """自检日志路径：默认落在 mkdtemp 创建的独占临时目录（CWE-377），
+    CI 可用 SZARUCO_SELFTEST_LOG 指定固定位置以便读取。"""
+    override = os.environ.get("SZARUCO_SELFTEST_LOG", "").strip()
+    if override:
+        return override
+    return os.path.join(tempfile.mkdtemp(prefix="szaruco_selftest_"), "selftest.log")
 
 
 def _stdout_utf8():
@@ -69,9 +79,30 @@ def _selftest():
         lines.append("结果: 失败 —— " + repr(exc))
         lines.append(traceback.format_exc())
     finally:
-        log = os.path.join(tempfile.gettempdir(), "aruco_selftest.log")
-        with open(log, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
+        log = _selftest_log_path()
+        lines.append("日志: " + log)
+        log_dir = os.path.dirname(log)
+        if log_dir:
+            try:
+                os.makedirs(log_dir, exist_ok=True)
+            except OSError:
+                pass
+        for attempt in (0, 1):
+            if attempt:
+                # 已存在（如 CI 固定路径的旧日志）：先删链接/文件本身再独占创建，
+                # 绝不顺着已存在的符号链接/硬链接写入（CWE-377）。
+                try:
+                    os.remove(log)
+                except OSError:
+                    break
+            try:
+                with open(log, "x", encoding="utf-8") as f:
+                    f.write("\n".join(lines))
+                break
+            except FileExistsError:
+                continue
+            except OSError:
+                break         # 日志写不了不影响自检结论（以退出码为准）
         try:
             print("\n".join(lines))
         except Exception:      # noqa: BLE001 —— 控制台编码不可控，绝不因此让自检失败

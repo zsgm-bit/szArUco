@@ -21,6 +21,12 @@
 """
 import csv
 import io
+import os
+
+# 资源上限：防止超大 CSV / 超多记录导致内存耗尽或长时间卡死（CWE-400）
+MAX_CSV_BYTES = 20 * 1024 * 1024     # 单个 CSV 文件 20 MB
+MAX_RECORDS = 20000                  # 单次导入最多 20000 条记录
+MAX_LOCATION_LEN = 200               # 位置文本最大长度
 
 # 表头关键词 → 字段
 _HEADER_ALIASES = {
@@ -98,6 +104,15 @@ def load_csv(path: str, default_size: float = 60.0):
              id 为对外编号；aruco 为显式指定的码号，None 表示由程序自动分配
     errors : [(行号, 原因), ...]
     """
+    try:
+        fsize = os.path.getsize(path)
+    except OSError:
+        fsize = 0
+    if fsize > MAX_CSV_BYTES:
+        raise CsvLoadError(
+            f"CSV 文件过大（{fsize / 1048576:.1f} MB），上限 "
+            f"{MAX_CSV_BYTES // 1048576} MB。请拆分后分批导入。")
+
     with open(path, "rb") as f:
         text = _decode(f.read())
 
@@ -170,10 +185,13 @@ def load_csv(path: str, default_size: float = 60.0):
         records.append({
             "id": marker_id,
             "aruco": aruco_id,
-            "location": cell("location"),
+            "location": cell("location")[:MAX_LOCATION_LEN],
             "qty": qty,
             "size": size,
         })
+        if len(records) >= MAX_RECORDS:
+            errors.append((lineno, f"记录数达到上限 {MAX_RECORDS} 条，其余行已忽略；请拆分后分批导入"))
+            break
 
     if not records and not errors:
         raise CsvLoadError("CSV 中没有找到有效数据行")

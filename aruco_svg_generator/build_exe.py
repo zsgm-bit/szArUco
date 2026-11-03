@@ -25,6 +25,17 @@ EXCLUDES = ["matplotlib", "pandas", "scipy", "tkinter", "PIL.ImageQt",
             "PyQt5.QtBluetooth", "PyQt5.QtMultimedia", "PyQt5.QtNetworkAuth"]
 
 
+def _redact(text: str) -> str:
+    """日志脱敏：把绝对路径收敛成相对/中文占位，避免把本机用户名目录结构
+    泄露到公开仓库的 CI 日志（CWE-532）。"""
+    text = text.replace(HERE, "<proj>")
+    text = text.replace(sys.executable, "<python>")
+    home = os.path.expanduser("~")
+    if home and home != "~":
+        text = text.replace(home, "~")
+    return text
+
+
 def main():
     onedir = len(sys.argv) > 1 and sys.argv[1].lower() in ("onedir", "dir")
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -40,7 +51,7 @@ def main():
         cmd += ["--exclude-module", mod]
     cmd.append(os.path.join(HERE, "main.py"))
 
-    print("[build] " + " ".join(cmd))
+    print("[build] " + _redact(" ".join(cmd)))
     proc = subprocess.run(cmd, cwd=HERE)
     if proc.returncode != 0:
         print("[build] 失败，退出码", proc.returncode)
@@ -57,7 +68,7 @@ def main():
                 pass
     out = os.path.join(dist, name + ("" if onedir else ".exe"))
     size = os.path.getsize(out) / (1024 * 1024) if os.path.exists(out) else 0
-    print(f"[build] 完成：{out}（{size:.1f} MB）")
+    print(_redact(f"[build] 完成：{out}（{size:.1f} MB）"))
     return 0
 
 

@@ -31,6 +31,26 @@ from svg_generator import (LABEL_AREA_MM, MarkerSpec, assign_aruco_ids,
                            compute_grid, expand_specs, footprint, marker_svg,
                            placeholder_svg, qr_matrix, sheet_svg, total_labels)
 
+# 文件名白名单：保留数字/字母/下划线/中文/点/横线，其余（含路径分隔符、冒号、
+# 空白、控制字符）统一替换为下划线。用于阻断「编号/位置 → 文件名」的路径穿越。
+_UNSAFE_NAME = re.compile(r"[^0-9A-Za-z_\u4e00-\u9fff.\-]+")
+
+# CSV 公式注入前缀：Excel/WPS 会把以这些字符开头的单元格当公式执行。
+_FORMULA_PREFIX = ("=", "+", "-", "@", "\t", "\r")
+
+
+def safe_filename(text, limit: int = 40) -> str:
+    """把任意文本收敛为安全的单段文件名（不含目录分隔符、不以点号开头/结尾）。"""
+    s = _UNSAFE_NAME.sub("_", str(text or ""))
+    s = s.replace("..", "_").strip("._-")[:limit].strip("._-")
+    return s or "label"
+
+
+def csv_cell(value) -> str:
+    """CSV 单元格防公式注入：危险前缀前加单引号，使 Excel 按纯文本处理。"""
+    s = "" if value is None else str(value)
+    return "'" + s if s[:1] in _FORMULA_PREFIX else s
+
 
 class SvgLabel(QLabel):
     """自适应 SVG 预览控件：按控件当前大小矢量重渲染，缩放窗口不裁切、不失真。"""
@@ -676,6 +696,15 @@ class MainWindow(QMainWindow):
         except CsvLoadError as e:
             QMessageBox.warning(self, "导入失败", str(e))
             return
+        except OSError as e:
+            # 文件被占用 / 无权限 / 选到目录等：不把 traceback 和绝对路径抛给用户
+            self.statusBar().showMessage(f"导入失败（{type(e).__name__}）: {e}")
+            QMessageBox.warning(
+                self, "导入失败",
+                f"无法读取所选文件：{type(e).__name__}\n"
+                f"{os.path.basename(path)}\n\n"
+                "请确认文件未被 Excel 等程序占用，且有读取权限。")
+            return
 
         if self.markers:
             ret = QMessageBox.question(
@@ -861,13 +890,15 @@ class MainWindow(QMainWindow):
             if self._is_qr():
                 w.writerow(["编号", "位置", "尺寸mm", "数量"])
                 for s in self.markers:
-                    w.writerow([s.display_code(), s.location, f"{s.size_mm:g}", s.qty])
+                    w.writerow([csv_cell(s.display_code()), csv_cell(s.location),
+                                f"{s.size_mm:g}", s.qty])
                 tip = "QR 码直接编码编号本身，扫码结果即编号，无需反查。"
             else:
                 w.writerow(["编号", "ArUco码号", "字典", "位置", "尺寸mm", "数量"])
                 for s in self.markers:
-                    w.writerow([s.display_code(), s.marker_id, self.dict_obj.name,
-                                s.location, f"{s.size_mm:g}", s.qty])
+                    w.writerow([csv_cell(s.display_code()), s.marker_id,
+                                csv_cell(self.dict_obj.name), csv_cell(s.location),
+                                f"{s.size_mm:g}", s.qty])
                 tip = "扫码识别出 ArUco 码号后，用这张表反查对应编号。"
         QMessageBox.information(
             self, "导出完成",
@@ -882,8 +913,9 @@ class MainWindow(QMainWindow):
         if not folder:
             return
         short = "qr" if self._is_qr() else self.dict_obj.name.replace("DICT_", "").lower()
-        written, skipped, duplicated = 0, [], 0
+        written, skipped, duplicated, unsafe = 0, [], 0, []
         used_names, seen_keys = set(), set()
+        folder_real = os.path.realpath(folder)
         for spec in self.markers:
             bits = self._bits_for(spec)
             if bits is None:
@@ -899,16 +931,23 @@ class MainWindow(QMainWindow):
                              cut_line=self.cut_chk.isChecked(),
                              padding_mm=self.pad_spin.value(),
                              style=self._style())
-            base = f"{short}_{spec.display_code()}"
+            # 编号与位置都经白名单清洗：路径分隔符/.. /冒号等一律变成下划线，
+            # 杜绝「编号 ../../../x」把文件写到所选目录之外（CWE-22）。
+            base = f"{short}_{safe_filename(spec.display_code())}"
             if spec.location:
-                safe = re.sub(r'[\\/:*?"<>|\s]+', "_", spec.location)[:20].strip("_")
-                if safe:
-                    base += f"_{safe}"
+                safe_loc = safe_filename(spec.location, 20)
+                if safe_loc != "label":       # 全是不安全字符时不留空段
+                    base += f"_{safe_loc}"
             fname, k = base + ".svg", 2
             while fname in used_names:
                 fname, k = f"{base}_{k}.svg", k + 1
+            target = os.path.join(folder_real, fname)
+            # 二次兜底：解析符号链接/目录联接后，父目录仍必须是所选目录
+            if os.path.dirname(os.path.realpath(target)) != folder_real:
+                unsafe.append(spec.display_code())
+                continue
             used_names.add(fname)
-            with open(os.path.join(folder, fname), "w", encoding="utf-8") as f:
+            with open(target, "w", encoding="utf-8") as f:
                 f.write(svg)
             written += 1
         msg = f"已导出 {written} 个 SVG 文件到:\n{folder}"
@@ -916,5 +955,7 @@ class MainWindow(QMainWindow):
             msg += f"\n\nℹ 另有 {duplicated} 个重复标签（同 ID/尺寸/位置）未重复落盘——\nSVG 是单标签文件，数量请用「导出 PDF」体现。"
         if skipped:
             msg += f"\n\n⚠ {len(skipped)} 条记录无可用码号被跳过: {skipped[:20]}"
+        if unsafe:
+            msg += f"\n\n⚠ {len(unsafe)} 条记录的编号/位置无法生成安全文件名，已跳过: {unsafe[:20]}"
         QMessageBox.information(self, "导出完成", msg)
         self.statusBar().showMessage(f"SVG 导出完成: {written} 个 → {folder}")
