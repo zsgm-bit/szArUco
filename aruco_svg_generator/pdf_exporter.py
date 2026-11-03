@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2026 zsgm-bit
-# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
+# 本项目采用 MIT 许可证，详见 LICENSE。
 """PDF 导出：单码一页 / 网格拼版 两种模式。
 
 用 reportlab 直接按比特矩阵绘制矢量矩形（非嵌入位图），

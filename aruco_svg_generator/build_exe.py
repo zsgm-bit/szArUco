@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2026 zsgm-bit
-# 本项目采用 AGPL-3.0 + 商业许可 双轨制：开源许可见 LICENSE，商业许可见 LICENSE-COMMERCIAL.md。
+# 本项目采用 MIT 许可证，详见 LICENSE。
 r"""一键打包 Windows exe（PyInstaller 单文件）。
 
 用法：

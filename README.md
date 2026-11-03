@@ -2,9 +2,7 @@
 
 ![Build Windows EXE](https://github.com/zsgm-bit/szArUco/actions/workflows/build.yml/badge.svg)
 
-![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
-
-![Commercial License](https://img.shields.io/badge/License-Commercial-orange.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 ArUco / QR 矢量码生成器 —— 面向 OHT·AMR 地标地贴的 Windows 桌面工具。
 
@@ -118,16 +116,13 @@ SVG/XML 输出已使用 `xml.sax.saxutils.escape` 转义，字典名走固定白
 
 ## 授权许可（License）
 
-Copyright (c) 2026 zsgm-bit。本项目采用 **AGPL-3.0 + 商业许可 双轨制**（dual licensing）。
+[MIT](LICENSE) © 2026 zsgm-bit
 
-| 使用场景                                     | 适用许可         | 说明                                            |
-| ---------------------------------------- | ------------ | --------------------------------------------- |
-| 个人学习、研究、内部自用、开源项目集成                      | **AGPL-3.0** | 免费。修改后分发、或通过网络向第三方提供服务时，须以 AGPL-3.0 公开完整对应源代码 |
-| 闭源集成、商业产品内置、OEM/ODM、不愿开放源码的企业部署或 SaaS 服务 | **商业许可**     | 付费授权，免除 AGPL 的开源义务，可按项目/席位/年限授权               |
+任何人可自由使用、复制、修改、合并、发布、分发、再许可和/或销售本软件的副本，
+包括商业使用与闭源集成，**无需支付费用、无需公开修改后的源代码**。
 
-- 开源许可全文：**[LICENSE](LICENSE)**（GNU Affero General Public License v3.0）
-- 商业许可说明与申请：**[LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md)**
+唯一要求：在所有副本或软件的实质性部分中，保留上述版权声明与本许可声明。
 
-> 一句话判断：**不闭源、也不对外提供网络服务 → AGPL-3.0 免费即可；要闭源分发或做 SaaS 又不想开源 → 需购买商业许可。**
-
-商业授权咨询：在 GitHub 提交 Issue（注明「商业许可」）或联系仓库所有者 zsgm-bit。
+本软件按「原样」提供，不附带任何明示或暗示的担保，包括但不限于适销性、
+特定用途适用性和非侵权的担保。作者或版权持有人不对任何索赔、损害或其他
+责任承担责任。

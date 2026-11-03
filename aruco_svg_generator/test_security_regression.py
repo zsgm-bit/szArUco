@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2026 zsgm-bit
 """安全修复回归验证：路径穿越 / CSV 公式注入 / 资源上限 / 异常兜底。
 
