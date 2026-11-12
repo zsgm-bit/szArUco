@@ -21,8 +21,9 @@ ArUco / QR 矢量码生成器 —— 面向 OHT·AMR 地标地贴的 Windows 桌
   - *白底黑码（经典）*
   - *黑底反色 —— 需扫描端支持 Inverse 反色*
 - ***PDF 双模式****：网格拼版 / 单码一页；纸张 A4/A3/A5/Letter + 自定义尺寸*
+- ***扫码识别 / 校验****：从图片、文件夹或摄像头读取 QR / ArUco 码，可与码表比对（匹配 / 缺失 / 多余），用于打印验收与现场巡场*
 - ***可调参数****：静区宽度、裁切线、*&#x6807;签信息栏、每码数量
-- **自检**：打包后的 exe 支持 `--selftest` 无界面自检（写日志到 `%TEMP%\aruco_selftest.log`）
+- **自检**：打包后的 exe 支持 `--selftest` 无界面自检（含生成→扫码闭环验证）
 
 ## 快速开始
 
@@ -53,6 +54,21 @@ python -m venv ..\.venv
 在 Artifacts 中下载 `szArUco-windows-exe`；  
 或到 **Releases** 页面下载打 `v*` 标签后自动附带的 exe。
 
+## 扫码识别 / 校验
+
+主界面点 **「🔍 扫码识别…」** 打开扫码窗口，两种取图方式：
+
+| 方式 | 用法 | 典型场景 |
+| --- | --- | --- |
+| 图片 / 文件夹 | 多选照片或整个文件夹（递归，≤500 张） | 打印后逐张拍照验收、批量核对存量标签 |
+| 摄像头 | 选设备 → 「开始扫描」，画面实时画框，结果自动去重累积 | 现场巡场逐个扫地贴 |
+
+- 同时支持 **QR 与 ArUco**；「黑底反色」样式会自动按反色识别（对应读码器的 Inverse 选项）
+- ArUco 码号自动按当前码表**翻译成业务编号**，备注列标注「✓ 在码表中 / 码表外」
+- **与码表比对**：一键给出 匹配 / 缺失（码表有、没扫到）/ 多余（扫到但码表没有）三张清单
+- **加入码列表**：扫到的新编号可一键加入主界面列表（重复自动跳过）
+- **导出结果 CSV**：来源、类型、内容、字典、码号、极性、备注
+
 ## CSV 格式
 
 ```csv
@@ -68,7 +84,9 @@ id,位置,数量,尺寸
 
 - Python 3.13 + PyQt5 / opencv-contrib-python / reportlab / qrcode / numpy
 - 代码结构：`aruco_dict.py`（字典）、`svg_generator.py`（矢量绘制）、  
-  `pdf_exporter.py`（PDF 拼版）、`csv_loader.py`（导入）、`gui/`（界面）
+  `pdf_exporter.py`（PDF 拼版）、`csv_loader.py`（导入）、`code_reader.py`（扫码解码）、  
+  `textutil.py`（导出文本清洗）、`gui/`（界面，含 `scan_dialog.py` 扫码窗口）
+- 回归测试：`test_security_regression.py`（安全加固）、`test_scan_roundtrip.py`（生成→扫码闭环）
 
 ## 自动构建（GitHub Actions）
 

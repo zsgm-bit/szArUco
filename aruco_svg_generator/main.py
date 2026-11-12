@@ -59,6 +59,29 @@ def _selftest():
         assert qm is not None and qm.ndim == 2
         lines.append(f"QR 矩阵: {qm.shape[0]}×{qm.shape[1]}")
 
+        # 扫码闭环自检：把矩阵画成位图再读回来（不依赖 Qt，纯 OpenCV）
+        import cv2
+        import numpy as np
+
+        from code_reader import decode_aruco, decode_qr
+        n, border, scale = qm.shape[0], 4, 8
+        canvas = np.full((n + 2 * border, n + 2 * border), 255, np.uint8)
+        canvas[border:border + n, border:border + n] = np.where(qm == 1, 0, 255)
+        qr_img = cv2.resize(canvas, None, fx=scale, fy=scale,
+                            interpolation=cv2.INTER_NEAREST)
+        qr_read = [h.text for h in decode_qr(cv2.cvtColor(qr_img, cv2.COLOR_GRAY2BGR))]
+        assert "100001" in qr_read, f"QR 读回失败: {qr_read}"
+        lines.append(f"QR 扫码闭环: 读回 {qr_read[0]}")
+
+        marker = cv2.aruco.generateImageMarker(
+            cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250), 12, 240)
+        padded = cv2.copyMakeBorder(marker, 60, 60, 60, 60,
+                                    cv2.BORDER_CONSTANT, value=255)
+        ar_read = decode_aruco(cv2.cvtColor(padded, cv2.COLOR_GRAY2BGR),
+                               ("DICT_6X6_250",))
+        assert any(h.marker_id == 12 for h in ar_read), f"ArUco 读回失败: {ar_read}"
+        lines.append("ArUco 扫码闭环: DICT_6X6_250 读回码号 12")
+
         specs = [MarkerSpec(d.name, i, 60.0, f"工位{i}", 1, f"10{i:04d}") for i in range(6)]
         out = os.path.join(tmpdir, "selftest.pdf")
         info = export_pdf(out, specs, lambda s: d.bits(s.marker_id), paper="A4", mode="grid")

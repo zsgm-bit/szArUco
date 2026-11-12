@@ -41,6 +41,11 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: python aruco_svg_generator/test_security_regression.py
 
+      - name: Scan round-trip tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python aruco_svg_generator/test_scan_roundtrip.py
+
       - name: Show self-test log (on failure)
         if: failure()
         run: Get-Content "$env:SZARUCO_SELFTEST_LOG" -Encoding UTF8

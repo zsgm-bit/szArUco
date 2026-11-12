@@ -108,7 +108,10 @@ def assign_aruco_ids(records, capacity: int, reserved=None):
         if r.get("aruco") is not None:
             continue
         mid = r["id"]
-        if 0 <= mid < capacity and mid not in used:
+        # 兼容字符串编号（扫码结果、手工录入都是 str），仅纯数字才可当码号
+        if isinstance(mid, str) and mid.strip().isdigit():
+            mid = int(mid.strip())
+        if isinstance(mid, int) and 0 <= mid < capacity and mid not in used:
             r["aruco"] = mid
             used.add(mid)
             continue

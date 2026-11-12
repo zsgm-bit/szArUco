@@ -11,7 +11,6 @@
 """
 import csv
 import os
-import re
 from datetime import datetime
 
 from PyQt5.QtCore import Qt, QByteArray, QRectF
@@ -26,30 +25,13 @@ from PyQt5.QtWidgets import (
 
 from aruco_dict import ArucoDictionary, list_dictionaries
 from csv_loader import CsvLoadError, load_csv
+from gui.scan_dialog import ScanDialog
 from pdf_exporter import PAPERS, export_pdf
 from svg_generator import (LABEL_AREA_MM, MarkerSpec, assign_aruco_ids,
                            compute_grid, expand_specs, footprint, marker_svg,
                            placeholder_svg, qr_matrix, sheet_svg, total_labels)
-
-# 文件名白名单：保留数字/字母/下划线/中文/点/横线，其余（含路径分隔符、冒号、
-# 空白、控制字符）统一替换为下划线。用于阻断「编号/位置 → 文件名」的路径穿越。
-_UNSAFE_NAME = re.compile(r"[^0-9A-Za-z_\u4e00-\u9fff.\-]+")
-
-# CSV 公式注入前缀：Excel/WPS 会把以这些字符开头的单元格当公式执行。
-_FORMULA_PREFIX = ("=", "+", "-", "@", "\t", "\r")
-
-
-def safe_filename(text, limit: int = 40) -> str:
-    """把任意文本收敛为安全的单段文件名（不含目录分隔符、不以点号开头/结尾）。"""
-    s = _UNSAFE_NAME.sub("_", str(text or ""))
-    s = s.replace("..", "_").strip("._-")[:limit].strip("._-")
-    return s or "label"
-
-
-def csv_cell(value) -> str:
-    """CSV 单元格防公式注入：危险前缀前加单引号，使 Excel 按纯文本处理。"""
-    s = "" if value is None else str(value)
-    return "'" + s if s[:1] in _FORMULA_PREFIX else s
+# 导出文本清洗（路径穿越 / CSV 公式注入防护）已抽取到 textutil，扫码导出复用同一实现
+from textutil import csv_cell, safe_filename   # noqa: F401 —— 对外仍从本模块导出
 
 
 class SvgLabel(QLabel):
@@ -310,6 +292,9 @@ class MainWindow(QMainWindow):
         btn_preview = QPushButton("👁 预览")
         btn_pdf = QPushButton("🖨 生成PDF…")
         btn_pdf.setObjectName("accent")
+        btn_scan = QPushButton("🔍 扫码识别…")
+        btn_scan.setToolTip("从图片 / 文件夹 / 摄像头读取 QR 与 ArUco 码，\n"
+                            "可与当前码表比对（匹配 / 缺失 / 多余），用于打印验收。")
         for b in (btn_csv, btn_batch, btn_add, btn_del, btn_clear):
             b.clicked.connect(
                 lambda _, f={btn_csv: self.import_csv, btn_batch: self.batch_numbers,
@@ -319,6 +304,7 @@ class MainWindow(QMainWindow):
         btn_svg.clicked.connect(self.export_svg)
         btn_preview.clicked.connect(self.toggle_preview)
         btn_pdf.clicked.connect(self.open_pdf_preview)
+        btn_scan.clicked.connect(self.open_scan_dialog)
         # 列表有数据后才可用（导入 / 批量编号 / 添加之后）
         self.btn_preview = btn_preview
         self.btn_pdf = btn_pdf
@@ -330,6 +316,7 @@ class MainWindow(QMainWindow):
         btn_svg.setEnabled(False)
         for b in (btn_csv, btn_batch, btn_add, btn_del, btn_clear):
             top.addWidget(b)
+        top.addWidget(btn_scan)
         top.addStretch(1)
         top.addWidget(btn_map)
         top.addWidget(btn_svg)
@@ -684,6 +671,44 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "请先导入 CSV、批量编号或添加码。")
             return
         PdfPreviewDialog(self).exec_()
+
+    # ------------------------------------------------------------- 扫码识别
+    def open_scan_dialog(self):
+        """打开扫码识别/校验窗口：读图片、文件夹或摄像头里的 QR / ArUco 码。"""
+        dlg = ScanDialog(self, markers=self.markers, dict_name=self.dict_obj.name,
+                         on_add_codes=self.add_scanned_codes)
+        dlg.exec_()
+
+    def add_scanned_codes(self, codes):
+        """把扫码得到的新编号加入码列表（跳过已存在的），返回新增条数。"""
+        exist = {m.display_code() for m in self.markers}
+        fresh = []
+        for c in codes:
+            c = str(c).strip()
+            if c and c not in exist and c not in fresh:
+                fresh.append(c)
+        if not fresh:
+            return 0
+
+        recs = [{"id": c, "aruco": None, "location": "", "qty": 1,
+                 "size": self.size_spin.value()} for c in fresh]
+        reserved = {m.marker_id for m in self.markers if m.marker_id is not None}
+        if not self._is_qr():
+            assign_aruco_ids(recs, self.dict_obj.marker_count, reserved)
+
+        added = 0
+        for r in recs:
+            if not self._is_qr() and r["aruco"] is None:
+                continue
+            self.markers.append(MarkerSpec(
+                dict_name="QR" if self._is_qr() else self.dict_obj.name,
+                marker_id=None if self._is_qr() else r["aruco"],
+                size_mm=r["size"], location=r["location"], qty=r["qty"],
+                code=str(r["id"])))
+            added += 1
+        self.refresh_list()
+        self.statusBar().showMessage(f"扫码新增 {added} 条记录")
+        return added
 
     # ------------------------------------------------------------- 数据操作
     def import_csv(self):
